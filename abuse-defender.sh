@@ -13,7 +13,25 @@ LOCAL_IP_LIST="/etc/abuse_defender/blocked_ips.txt"
 # Ports to block
 BLOCKED_PORTS=(16658 5564)
 
+check_firewall_tools() {
+    echo -e "${BLUE}[*] Checking firewall tools...${NC}"
+    
+    if ! command -v ufw &> /dev/null; then
+        echo -e "${YELLOW}[*] Installing UFW...${NC}"
+        sudo apt update && sudo apt install -y ufw
+    fi
+
+    if ! command -v iptables &> /dev/null; then
+        echo -e "${YELLOW}[*] Installing iptables...${NC}"
+        sudo apt update && sudo apt install -y iptables
+    fi
+
+    echo -e "${GREEN}[✔] Firewall tools are installed.${NC}"
+}
+
 install_firewall_rules() {
+    check_firewall_tools
+
     echo -e "${BLUE}[*] Installing firewall rules...${NC}"
     mkdir -p /etc/abuse_defender
     curl -s "$IP_LIST_URL" -o "$LOCAL_IP_LIST"
@@ -43,10 +61,16 @@ install_firewall_rules() {
         iptables -A OUTPUT -p udp --dport "$port" -j DROP
     done
     
+    echo -e "${YELLOW}[*] Reloading firewall rules...${NC}"
+    ufw reload
+    iptables-save > /etc/iptables/rules.v4
+
     echo -e "${GREEN}[✔] Firewall rules installed successfully!${NC}"
 }
 
 remove_firewall_rules() {
+    check_firewall_tools
+
     echo -e "${BLUE}[*] Removing firewall rules...${NC}"
     
     if [[ ! -f $LOCAL_IP_LIST ]]; then
@@ -73,6 +97,10 @@ remove_firewall_rules() {
         iptables -D OUTPUT -p tcp --dport "$port" -j DROP 2>/dev/null
         iptables -D OUTPUT -p udp --dport "$port" -j DROP 2>/dev/null
     done
+
+    echo -e "${YELLOW}[*] Reloading firewall rules...${NC}"
+    ufw reload
+    iptables-save > /etc/iptables/rules.v4
     
     echo -e "${GREEN}[✔] Firewall rules removed successfully!${NC}"
 }
