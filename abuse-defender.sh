@@ -26,7 +26,20 @@ check_firewall_tools() {
         sudo apt update && sudo apt install -y iptables
     fi
 
+    if ! dpkg -l | grep -q iptables-persistent; then
+        echo -e "${YELLOW}[*] Installing iptables-persistent...${NC}"
+        sudo apt install -y iptables-persistent
+    fi
+
     echo -e "${GREEN}[✔] Firewall tools are installed.${NC}"
+}
+
+save_firewall_rules() {
+    echo -e "${BLUE}[*] Saving firewall rules...${NC}"
+    mkdir -p /etc/iptables
+    iptables-save > /etc/iptables/rules.v4
+    ip6tables-save > /etc/iptables/rules.v6
+    echo -e "${GREEN}[✔] Firewall rules saved successfully.${NC}"
 }
 
 install_firewall_rules() {
@@ -63,7 +76,7 @@ install_firewall_rules() {
     
     echo -e "${YELLOW}[*] Reloading firewall rules...${NC}"
     ufw reload
-    iptables-save > /etc/iptables/rules.v4
+    save_firewall_rules
 
     echo -e "${GREEN}[✔] Firewall rules installed successfully!${NC}"
 }
@@ -100,7 +113,7 @@ remove_firewall_rules() {
 
     echo -e "${YELLOW}[*] Reloading firewall rules...${NC}"
     ufw reload
-    iptables-save > /etc/iptables/rules.v4
+    save_firewall_rules
     
     echo -e "${GREEN}[✔] Firewall rules removed successfully!${NC}"
 }
